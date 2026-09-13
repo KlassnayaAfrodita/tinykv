@@ -18,3 +18,39 @@ jobs:
 
     - name: Build & Test
       run: make ci
+
+  lab-tests:
+    name: Lab Tests
+    if: >-
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'push' && startsWith(github.ref_name, 'branch-project'))
+    runs-on: ubuntu-latest
+    env:
+      BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+    steps:
+
+    - name: Set up Go 1.13
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.13
+
+    - name: Check out code
+      uses: actions/checkout@v1
+
+    - name: Select lab tests
+      id: lab
+      shell: bash
+      run: |
+        target="${BRANCH_NAME#branch-}"
+        case "$target" in
+          project1|project2|project2a|project2aa|project2ab|project2ac|project2b|project2c|project3|project3a|project3b|project3c|project4|project4a|project4b|project4c)
+            echo "target=$target" >> "$GITHUB_OUTPUT"
+            ;;
+          *)
+            echo "Unsupported lab branch: $BRANCH_NAME" >&2
+            exit 1
+            ;;
+        esac
+
+    - name: Run lab tests
+      run: make "${{ steps.lab.outputs.target }}"
